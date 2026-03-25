@@ -85,12 +85,25 @@
             font-size: 18px;
         }
 
+        .team.highlight {
+            font-weight: bold;
+            color: #1a73e8;
+        }
+
         .flag {
             width: 32px;
             height: 22px;
             margin-right: 12px;
             border-radius: 3px;
             border: 1px solid #ccc;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #888;
+            font-size: 18px;
+            margin-top: 40px;
+            grid-column: 1 / -1;
         }
     </style>
 </head>
@@ -144,43 +157,78 @@
         "Uruguay" => "uy"
     ];
 
-    function displayTeam($name, $codes) {
+    // Collect all unique team names (excluding unknown "?")
+    $allTeams = [];
+    foreach ($winners as $teams) {
+        foreach ($teams as $team) {
+            if ($team !== "?" && !in_array($team, $allTeams)) {
+                $allTeams[] = $team;
+            }
+        }
+    }
+    sort($allTeams);
+
+    function displayTeam($name, $codes, $highlight = false) {
+        $highlightClass = $highlight ? " highlight" : "";
         if (isset($codes[$name])) {
             $code = $codes[$name];
-            return "<div class='team'><img class='flag' src='https://flagcdn.com/w40/$code.png' alt='$name'> $name</div>";
+            return "<div class='team$highlightClass'><img class='flag' src='https://flagcdn.com/w40/$code.png' alt='$name'> $name</div>";
         }
-        return "<div class='team'>$name</div>";
+        return "<div class='team$highlightClass'>$name</div>";
     }
 
+    // Read filter values
+    $selectedYear = isset($_GET['year']) ? $_GET['year'] : '';
+    $selectedTeam = isset($_GET['team']) ? $_GET['team'] : '';
+
     echo '<form method="get">';
+
+    // Year filter
     echo '<select name="year">';
     echo '<option value="">-- Toutes les années --</option>';
     foreach (array_keys($winners) as $year) {
-        $selected = (isset($_GET['year']) && $_GET['year'] == $year) ? 'selected' : '';
+        $selected = ($selectedYear == $year) ? 'selected' : '';
         echo "<option value=\"$year\" $selected>$year</option>";
     }
     echo '</select>';
+
+    // Team filter
+    echo '<select name="team">';
+    echo '<option value="">-- Toutes les équipes --</option>';
+    foreach ($allTeams as $team) {
+        $selected = ($selectedTeam === $team) ? 'selected' : '';
+        echo "<option value=\"" . htmlspecialchars($team) . "\" $selected>" . htmlspecialchars($team) . "</option>";
+    }
+    echo '</select>';
+
     echo '<button type="submit">Filtrer</button>';
     echo '</form>';
 
     echo '<div class="grid">';
-    if (isset($_GET['year']) && array_key_exists($_GET['year'], $winners)) {
-        $year = $_GET['year'];
-        $teams = $winners[$year];
+
+    $found = false;
+
+    foreach ($winners as $year => $teams) {
+        // Filter by year
+        if ($selectedYear !== '' && $year != $selectedYear) continue;
+
+        // Filter by team
+        if ($selectedTeam !== '' && !in_array($selectedTeam, $teams)) continue;
+
+        $found = true;
         echo "<div class='winner-card'>";
         echo "<h2>$year</h2>";
-        echo displayTeam($teams[0], $countryCodes);
-        echo displayTeam($teams[1], $countryCodes);
-        echo "</div>";
-    } else {
-        foreach ($winners as $year => $teams) {
-            echo "<div class='winner-card'>";
-            echo "<h2>$year</h2>";
-            echo displayTeam($teams[0], $countryCodes);
-            echo displayTeam($teams[1], $countryCodes);
-            echo "</div>";
+        foreach ($teams as $team) {
+            $highlight = ($selectedTeam !== '' && $team === $selectedTeam);
+            echo displayTeam($team, $countryCodes, $highlight);
         }
+        echo "</div>";
     }
+
+    if (!$found) {
+        echo "<div class='no-results'>Aucun résultat trouvé pour ce filtre.</div>";
+    }
+
     echo '</div>';
     ?>
 </div>
