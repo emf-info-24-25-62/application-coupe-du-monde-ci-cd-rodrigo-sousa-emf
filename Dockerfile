@@ -5,7 +5,7 @@ FROM php:8.2-apache
 WORKDIR /var/www/html
 
 # copier le fichier et le mettre dans le dossier actuel
-COPY index.php .
+COPY src/index.php .
 
 # Exposer le port 80 pour documenter
 EXPOSE 80
